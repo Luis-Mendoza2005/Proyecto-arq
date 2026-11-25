@@ -1,13 +1,5 @@
 # Bitácora del proyecto
 
-## Semana 1 — Inicio
-- Fecha:
-- Integrantes presentes:
-- Actividad realizada:
-- Decisiones tomadas:
-- Dudas pendientes:
-- Próximos pasos:
-
 ## Dia 1 - Preparación teorica y definicion del esquema de base de datos.
 - Fecha: 23 de noviembre de 2026.
 - Archivos modificados: 001_create_schema.sql, 001_seed_vehicles.sql
@@ -41,14 +33,11 @@ Adicionalmente, se definió el esquema de la base de datos y se creó un archivo
 
 Se implementó, servicio por servicio, los servicios requeridos para cumplir con los casos de uso del programa. 
 
+## Dia 3 - Finalización de prototipo.
+- Fecha: 25 de noviembre de 2026.
+- Archivos modificados: /tests, openapi.yaml
+- Pruebas ejecutadas: 81.
+- Resultado: Se finalizó y probó el prototipo.
+- Pendientes: Realizar la presentación.
 
-
-## Semana 5 — Implementación, contrato y pruebas
-- Fecha:
-- Integrantes presentes:
-- Flujos revisados: crear y consultar reservas.
-- Contrato: `docs/openapi.yaml` (OpenAPI 3.0.3), servido en `/openapi.yaml`.
-- Pruebas: unitarias, repositorio y HTTP con `Pool` simulado; ver `tests/`.
-- Decisiones o cambios realizados por el equipo:
-- Hallazgos y dudas pendientes:
-- Próximos pasos:
+Se realizaron las pruebas del correcto funcionamiento de la api usando postman, y se comprobaron los codigos de error correspondientes a cada flujo alternativo.

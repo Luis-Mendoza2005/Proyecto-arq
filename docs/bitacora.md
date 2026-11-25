@@ -32,6 +32,9 @@ codigo 404.
 
 Adicionalmente, se definió el esquema de la base de datos y se creó un archivo semilla con entradas estaticas de prueba. Los detalles de la implementación y razones de por qué se hace cada cosa estan en los comentarios del archivo.
 
+## Dia 2 - .
+
+
 
 ## Semana 5 — Implementación, contrato y pruebas
 - Fecha:

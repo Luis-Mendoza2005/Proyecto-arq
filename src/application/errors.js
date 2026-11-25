@@ -1,3 +1,4 @@
+//Este archivo se dedica a diseñar clases de errores para poder reutilizarlos donde sea pertinente.
 /** Entrada que incumple el contrato o una regla de validación (HTTP 400). */
 export class InvalidInputError extends Error {
   constructor(message) {

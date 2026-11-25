@@ -62,13 +62,53 @@ El archivo `.env` es local y está excluido de Git. Para detener la base de dato
 docker compose down
 ```
 
-## Probar los flujos manualmente
+## Prueba con Postman
+**Preparacion:**
+- Tener la base de datos corriendo.
+- Crear una colección y definir dos variables: 
+  - `baseUrl = http://localhost:3000/api`
+  - `rentalId = (vacia)`
+- Verificar con `GET {{baseUrl}}/vehicles`
 
-Vehículos de ejemplo: `11111111-1111-4111-8111-111111111111` (Spark GT),
-`22222222-2222-4222-8222-222222222222` (Rio) y `33333333-3333-4333-8333-333333333333` (Hilux).
+**CU-01 - Registrar un alquiler:**
+```json
+{
+  "customerName": "Ana Pérez",
+  "customerIdNumber": "0912345678",
+  "customerPhone": "+593991234567",
+  "vehicleId": "11111111-1111-4111-8111-111111111111",
+  "startsAt": "2026-11-26T09:00:00-05:00",
+  "endsAt": "2026-12-05T09:00:00-05:00",
+  "documents": {
+    "identityDocument": "docs/ana-perez-cedula.pdf",
+    "driverLicense": "docs/ana-perez-licencia.pdf",
+    "signedContract": "docs/contrato-0001.pdf"
+  }
+}
+```
 
-**CU-01 — Registrar un alquiler** (responde `201`):
+Repetir el mismo comando responde `409`. Quitar un documento del cliente responde `400`, ya que un alquiler no se puede registrar si no tiene todos los documentos.
 
+Para evitar copiar el id del alquiler a mano, pegar el siguiente codigo en la pestaña `Tests` de la solitud:
+
+``` js
+pm.test("201 Created", () => pm.response.to.have.status(201));
+pm.collectionVariables.set("rentalId", pm.response.json().data.id);
+```
+**CU-02 - Consultar Alquileres:**
+
+`GET {{baseUrl}}/rentals/{{rentalId}}` Debería mostrar un código 200 y el alquiler creado previamente.
+
+**CU-03 - Suspender un alquiler:**
+
+`POST {{baseUrl}}/rentals/{{rentalId}}/suspension` 
+``` json
+{ "reason": "Avería del vehículo" }
+```
+
+
+## Probar los flujos manualmente 
+**CU-01 — Registrar**:
 ```powershell
 $body = @{
   customerName = "Luis Mendoza"
@@ -89,8 +129,7 @@ $rental = Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/rentals 
 $rental.data.id
 ```
 
-Repetir el mismo comando responde `409` (el vehículo ya está alquilado). Quitar
-`signedContract` (o cualquier documento) responde `400` por la regla R-03.
+Repetir el mismo comando responde 409 (el vehículo ya está alquilado). Quitar signedContract (o cualquier documento) responde 400 por la regla R-03.
 
 **CU-02 — Consultar**:
 

@@ -32,7 +32,14 @@ codigo 404.
 
 Adicionalmente, se definió el esquema de la base de datos y se creó un archivo semilla con entradas estaticas de prueba. Los detalles de la implementación y razones de por qué se hace cada cosa estan en los comentarios del archivo.
 
-## Dia 2 - .
+## Dia 2 - Implementación de servicios solicitados.
+- Fecha: 24 de noviembre de 2026.
+- Archivos modificados: /application/ConsultRentalService.js, /application/ListVehiclesService.js, /application/errors.js, /application/RegisterRentalService.js, /application/validation.js, /domain/rental.js, /domain/vehicle.js, /persistance/PostgresRentalRepository.js, /persistance/PostgresVehicleRepository.js
+- Pruebas ejecutadas: No aplica.
+- Resultado: Se hizo la mayor parte del trabajo..
+- Pendientes: Realizar las pruebas solicitadas, terminar el contrato OpenAPI.
+
+Se implementó, servicio por servicio, los servicios requeridos para cumplir con los casos de uso del programa. 
 
 
 

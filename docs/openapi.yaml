@@ -1,18 +1,251 @@
 openapi: 3.0.3
 info:
-  title: API de reservas
+  title: API del sistema de alquiler de carros
   version: 1.0.0
-  description: Contrato HTTP del ejemplo usado en la semana 5.
+  description: >
+    Contrato HTTP del monolito en capas del sistema de gestión de alquileres.
+    Cubre CU-01 (registrar un alquiler), CU-02 (consultar alquileres) y CU-03
+    (suspender un alquiler), además de la gestión básica de vehículos.
+    R-03: no se permiten alquileres con documentos faltantes.
 servers:
   - url: http://localhost:3000
+tags:
+  - name: Alquileres
+  - name: Vehículos
+  - name: Sistema
 paths:
-  /api/reservations:
+  /api/rentals:
+    post:
+      tags: [Alquileres]
+      operationId: registerRental
+      summary: Registrar un alquiler (CU-01)
+      description: >
+        Valida los datos del cliente y los tres documentos obligatorios (R-03),
+        comprueba que el vehículo esté disponible, crea el alquiler y marca el vehículo
+        como alquilado en una sola transacción.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRental'
+            examples:
+              valido:
+                summary: Alquiler completo
+                value:
+                  customerName: Ana Pérez
+                  customerIdNumber: '0912345678'
+                  customerPhone: '+593991234567'
+                  vehicleId: 11111111-1111-4111-8111-111111111111
+                  startsAt: '2026-11-25T09:00:00-05:00'
+                  endsAt: '2026-11-28T09:00:00-05:00'
+                  documents:
+                    identityDocument: docs/ana-perez-cedula.pdf
+                    driverLicense: docs/ana-perez-licencia.pdf
+                    signedContract: docs/contrato-0001.pdf
+      responses:
+        '201':
+          description: Alquiler registrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Rental'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
     get:
-      operationId: listReservations
-      summary: Consultar las reservas
+      tags: [Alquileres]
+      operationId: listRentals
+      summary: Consultar alquileres con filtros y orden (CU-02)
+      description: >
+        Sin filtros devuelve los alquileres más recientes. Si ningún alquiler coincide,
+        responde 200 con `data` vacío y `meta.count` igual a 0 para que el cliente
+        informe al arrendador que no hay registros.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/RentalStatus'
+        - name: customerName
+          in: query
+          description: Búsqueda parcial, sin distinguir mayúsculas.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 160
+        - name: vehicleId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          description: Alquileres que inician en o después de esta fecha.
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: Alquileres que inician en o antes de esta fecha.
+          schema:
+            type: string
+            format: date-time
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [startsAt, customerName, duration, createdAt]
+            default: startsAt
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         '200':
-          description: Reservas ordenadas por fecha de inicio.
+          description: Página de alquileres.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Rental'
+                  meta:
+                    $ref: '#/components/schemas/PageMeta'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/rentals/{id}:
+    get:
+      tags: [Alquileres]
+      operationId: getRental
+      summary: Consultar un alquiler por identificador (CU-02)
+      parameters:
+        - $ref: '#/components/parameters/RentalId'
+      responses:
+        '200':
+          description: Alquiler encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Rental'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/rentals/{id}/suspension:
+    post:
+      tags: [Alquileres]
+      operationId: suspendRental
+      summary: Suspender un alquiler vigente (CU-03)
+      description: >
+        Marca el alquiler como suspendido con la razón indicada y libera el vehículo.
+        Si el alquiler ya finalizó o ya estaba suspendido responde 409.
+      parameters:
+        - $ref: '#/components/parameters/RentalId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuspendRental'
+            examples:
+              averio:
+                value:
+                  reason: Avería del vehículo reportada por el cliente.
+      responses:
+        '200':
+          description: Alquiler suspendido.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Rental'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/vehicles:
+    post:
+      tags: [Vehículos]
+      operationId: registerVehicle
+      summary: Registrar un vehículo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterVehicle'
+      responses:
+        '201':
+          description: Vehículo registrado y disponible.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Vehicle'
+        '400':
+          $ref: '#/components/responses/InvalidInput'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      tags: [Vehículos]
+      operationId: listVehicles
+      summary: Consultar vehículos
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/VehicleStatus'
+      responses:
+        '200':
+          description: Vehículos ordenados por placa.
           content:
             application/json:
               schema:
@@ -22,35 +255,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Reservation'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    post:
-      operationId: createReservation
-      summary: Crear una reserva
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateReservation'
-      responses:
-        '201':
-          description: Reserva creada.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [data]
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Reservation'
+                      $ref: '#/components/schemas/Vehicle'
         '400':
           $ref: '#/components/responses/InvalidInput'
         '500':
           $ref: '#/components/responses/InternalError'
   /health:
     get:
+      tags: [Sistema]
       operationId: healthCheck
       summary: Comprobar que la API responde
       responses:
@@ -65,43 +277,218 @@ paths:
                   status:
                     type: string
                     enum: [ok]
+  /openapi.yaml:
+    get:
+      tags: [Sistema]
+      operationId: getOpenApiDocument
+      summary: Obtener este contrato en YAML
+      responses:
+        '200':
+          description: Documento OpenAPI.
+          content:
+            application/yaml:
+              schema:
+                type: string
 components:
+  parameters:
+    RentalId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   schemas:
-    CreateReservation:
+    RentalDocuments:
       type: object
       additionalProperties: false
-      required: [customerName, resourceName, startsAt, endsAt]
+      required: [identityDocument, driverLicense, signedContract]
+      description: Referencias a los archivos escaneados. Los tres son obligatorios (R-03).
+      properties:
+        identityDocument:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: docs/ana-perez-cedula.pdf
+        driverLicense:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: docs/ana-perez-licencia.pdf
+        signedContract:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: docs/contrato-0001.pdf
+    RegisterRental:
+      type: object
+      additionalProperties: false
+      required:
+        [customerName, customerIdNumber, customerPhone, vehicleId, startsAt, endsAt, documents]
       properties:
         customerName:
           type: string
           minLength: 1
           maxLength: 160
           example: Ana Pérez
-        resourceName:
+        customerIdNumber:
           type: string
-          minLength: 1
-          maxLength: 160
-          example: Sala A
+          pattern: '^[A-Za-z0-9]{5,20}$'
+          example: '0912345678'
+        customerPhone:
+          type: string
+          pattern: '^\+?\d{7,15}$'
+          example: '+593991234567'
+        vehicleId:
+          type: string
+          format: uuid
         startsAt:
           type: string
           format: date-time
-          example: '2026-11-10T14:00:00-05:00'
+          example: '2026-11-25T09:00:00-05:00'
         endsAt:
           type: string
           format: date-time
-          example: '2026-11-10T15:00:00-05:00'
-    Reservation:
-      allOf:
-        - $ref: '#/components/schemas/CreateReservation'
-        - type: object
-          required: [id, createdAt]
-          properties:
-            id:
-              type: string
-              format: uuid
-            createdAt:
-              type: string
-              format: date-time
+          description: Debe ser posterior a startsAt.
+          example: '2026-11-28T09:00:00-05:00'
+        documents:
+          $ref: '#/components/schemas/RentalDocuments'
+    RentalStatus:
+      type: string
+      description: >
+        `finished` se deriva cuando un alquiler activo supera su fecha de fin.
+      enum: [active, suspended, finished]
+    RentalVehicle:
+      type: object
+      required: [id, plate, brand, model]
+      properties:
+        id:
+          type: string
+          format: uuid
+        plate:
+          type: string
+          example: PBA-1234
+        brand:
+          type: string
+          example: Chevrolet
+        model:
+          type: string
+          example: Spark GT
+    Rental:
+      type: object
+      required:
+        - id
+        - customerName
+        - customerIdNumber
+        - customerPhone
+        - vehicle
+        - documents
+        - startsAt
+        - endsAt
+        - status
+        - suspensionReason
+        - suspendedAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerName:
+          type: string
+        customerIdNumber:
+          type: string
+        customerPhone:
+          type: string
+        vehicle:
+          $ref: '#/components/schemas/RentalVehicle'
+        documents:
+          $ref: '#/components/schemas/RentalDocuments'
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/RentalStatus'
+        suspensionReason:
+          type: string
+          nullable: true
+        suspendedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    SuspendRental:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          example: Avería del vehículo reportada por el cliente.
+    VehicleStatus:
+      type: string
+      enum: [available, rented, maintenance]
+    RegisterVehicle:
+      type: object
+      additionalProperties: false
+      required: [plate, brand, model, year]
+      properties:
+        plate:
+          type: string
+          description: Formato ABC-1234 (el guion es opcional al enviarla).
+          example: PEF-4321
+        brand:
+          type: string
+          minLength: 1
+          maxLength: 80
+          example: Hyundai
+        model:
+          type: string
+          minLength: 1
+          maxLength: 80
+          example: Accent
+        year:
+          type: integer
+          minimum: 1990
+          description: Máximo, el año siguiente al actual.
+          example: 2023
+    Vehicle:
+      type: object
+      required: [id, plate, brand, model, year, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        plate:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        status:
+          $ref: '#/components/schemas/VehicleStatus'
+        createdAt:
+          type: string
+          format: date-time
+    PageMeta:
+      type: object
+      required: [limit, offset, count]
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        count:
+          type: integer
+          description: Cantidad de elementos devueltos en esta página.
     ErrorResponse:
       type: object
       required: [error]
@@ -110,11 +497,29 @@ components:
           type: string
   responses:
     InvalidInput:
-      description: Solicitud que no cumple el contrato o las reglas del intervalo.
+      description: Solicitud que no cumple el contrato o las reglas de validación (incluye R-03).
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: 'No se permiten alquileres con documentos faltantes (R-03): signedContract.'
+    NotFound:
+      description: El recurso indicado no existe.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: El alquiler indicado no existe.
+    Conflict:
+      description: La operación choca con el estado actual (vehículo no disponible, alquiler finalizado o ya suspendido, placa repetida).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: El vehículo no está disponible; el alquiler no fue registrado.
     InternalError:
       description: Error interno no expuesto al consumidor.
       content:

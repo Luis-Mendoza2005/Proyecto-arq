@@ -6,7 +6,7 @@ const { Pool } = pg;
 const pool = new Pool({
   host: process.env.DB_HOST ?? 'localhost',
   port: Number(process.env.DB_PORT ?? 5432),
-  database: process.env.DB_NAME ?? 'arquitectura',
+  database: process.env.DB_NAME ?? 'alquiler_carros',
   user: process.env.DB_USER ?? 'postgres',
   password: process.env.DB_PASSWORD ?? 'postgres',
 });
@@ -27,4 +27,3 @@ async function shutdown(signal) {
 
 process.on('SIGINT', () => void shutdown('SIGINT'));
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
-

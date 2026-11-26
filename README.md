@@ -68,9 +68,12 @@ docker compose down
 - Crear una colección y definir dos variables: 
   - `baseUrl = http://localhost:3000/api`
   - `rentalId = (vacia)`
-- Verificar con `GET {{baseUrl}}/vehicles`
+- Verificar con `GET {{baseUrl}}/api/vehicles`
 
 **CU-01 - Registrar un alquiler:**
+
+Crear una solicitud `{{baseUrl}}/api/rentals` con el siguiente cuerpo de ejemplo:
+
 ```json
 {
   "customerName": "Luis Mendoza",
@@ -97,11 +100,12 @@ pm.collectionVariables.set("rentalId", pm.response.json().data.id);
 ```
 **CU-02 - Consultar Alquileres:**
 
-`GET {{baseUrl}}/rentals/{{rentalId}}` Debería mostrar un código 200 y el alquiler creado previamente.
+`GET {{baseUrl}}/api/rentals/{{rentalId}}}` Debería mostrar un código 200 y el alquiler creado previamente.
 
 **CU-03 - Suspender un alquiler:**
 
-`POST {{baseUrl}}/rentals/{{rentalId}}/suspension` 
+`POST {{baseUrl}}/api/rentals/{{rentalId}}/suspension` 
+
 ``` json
 { "reason": "Avería del vehículo" }
 ```

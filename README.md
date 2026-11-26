@@ -73,15 +73,15 @@ docker compose down
 **CU-01 - Registrar un alquiler:**
 ```json
 {
-  "customerName": "Ana Pérez",
+  "customerName": "Luis Mendoza",
   "customerIdNumber": "0912345678",
   "customerPhone": "+593991234567",
   "vehicleId": "11111111-1111-4111-8111-111111111111",
   "startsAt": "2026-11-26T09:00:00-05:00",
   "endsAt": "2026-12-05T09:00:00-05:00",
   "documents": {
-    "identityDocument": "docs/ana-perez-cedula.pdf",
-    "driverLicense": "docs/ana-perez-licencia.pdf",
+    "identityDocument": "docs/luis-mendoza-cedula.pdf",
+    "driverLicense": "docs/luis-mendoza-licencia.pdf",
     "signedContract": "docs/contrato-0001.pdf"
   }
 }
